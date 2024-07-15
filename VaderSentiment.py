@@ -6,12 +6,14 @@ Created on Fri Jul  5 12:13:51 2024
 @author: rohan1809
 """
 import spacy
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import os
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-# Initialize SpaCy and VADER
-nlp = spacy.load("en_core_web_sm")
+# Initialize VADER sentiment analyzer
 sid = SentimentIntensityAnalyzer()
+
+# Load SpaCy English model
+nlp = spacy.load("en_core_web_sm")
 
 # Define the path to the text files
 base_path = '/Users/rohan1809/Desktop/EAAI25-main/Server'
@@ -29,56 +31,34 @@ for word in adjectives + nouns:
     ss = sid.polarity_scores(word)
     sentiment_dict[word] = ss['compound']
 
-# Define lists for intensifiers and negations
-intensifiers = {
-    "very": 1.5,
-    "extremely": 2.0,
-    "absolutely": 2.0,
-    "incredibly": 2.0,
-    "quite": 1.2,
-    "really": 1.5
-}
-negations = ["not", "never", "no", "none", "nobody", "nothing", "neither", "nowhere", "hardly", "scarcely", "barely"]
-
 def tokenize_and_tag(text):
     doc = nlp(text)
     tokens = [(token.text, token.pos_) for token in doc]
     return tokens
 
-def calculate_sentiment(tokens):
-    sentiment_score = 0
-    prev_word = ""
-    intensifier_multiplier = 1.0
-
-    for word, pos in tokens:
-        word_lower = word.lower()
-        
-        if word_lower in intensifiers:
-            intensifier_multiplier = intensifiers[word_lower]
-            continue
-        if word_lower in negations:
-            intensifier_multiplier = -1.0
-            continue
-
-        word_sentiment = sentiment_dict.get(word_lower, 0)
-        sentiment_score += intensifier_multiplier * word_sentiment
-        intensifier_multiplier = 1.0  # Reset the multiplier after applying it
-        prev_word = word
-
-    return sentiment_score
+def calculate_sentiment(text):
+    # Use VADER to calculate sentiment
+    sentiment_scores = sid.polarity_scores(text)
+    return sentiment_scores
 
 # Example usage
-text1 = "The cool wolf is handsome."
-text2 = "The cool wolf is extremely handsome."
+text = "The brave wolf is ugly."
+tokens = tokenize_and_tag(text)
+sentiment_scores = calculate_sentiment(text)
 
-tokens1 = tokenize_and_tag(text1)
-tokens2 = tokenize_and_tag(text2)
+print("Tokens:", tokens)
+print("Sentiment Scores:", sentiment_scores)
 
-sentiment_score1 = calculate_sentiment(tokens1)
-sentiment_score2 = calculate_sentiment(tokens2)
+# Additional sentences to analyze
+sentence1 = "The brave wolf is handsome."
+sentence2 = "The brave wolf is extremely handsome."
+sentence3 = "The brave wolf is not handsome."
 
-print("Tokens 1:", tokens1)
-print("Sentiment Score 1:", sentiment_score1)
+# Calculate sentiment scores for additional sentences
+score1 = calculate_sentiment(sentence1)
+score2 = calculate_sentiment(sentence2)
+score3 = calculate_sentiment(sentence3)
 
-print("Tokens 2:", tokens2)
-print("Sentiment Score 2:", sentiment_score2)
+print(f"Sentiment scores for '{sentence1}': {score1}")
+print(f"Sentiment scores for '{sentence2}': {score2}")
+print(f"Sentiment scores for '{sentence3}': {score3}")
