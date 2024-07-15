@@ -40,10 +40,21 @@ sentiment_dict = {
     # Add more words here...
 }
 
-# Adding remaining adjectives and nouns to the dictionary with neutral scores
+# Add neutral scores for remaining words
 for word in adjectives + nouns:
     if word not in sentiment_dict:
-        sentiment_dict[word] = 0  # Neutral words
+        sentiment_dict[word] = 0
+
+# Define lists for intensifiers and negations
+intensifiers = {
+    "very": 1.5,
+    "extremely": 2.0,
+    "absolutely": 2.0,
+    "incredibly": 2.0,
+    "quite": 1.2,
+    "really": 1.5
+}
+negations = ["not", "never", "no", "none", "nobody", "nothing", "neither", "nowhere", "hardly", "scarcely", "barely"]
 
 def tokenize_and_tag(text):
     doc = nlp(text)
@@ -52,17 +63,38 @@ def tokenize_and_tag(text):
 
 def calculate_sentiment(tokens):
     sentiment_score = 0
+    intensifier_multiplier = 1.0
+
     for word, pos in tokens:
-        if word.lower() in sentiment_dict:
-            sentiment_score += sentiment_dict[word.lower()]
+        word_lower = word.lower()
+        
+        if word_lower in intensifiers:
+            intensifier_multiplier *= intensifiers[word_lower]
+            continue
+        if word_lower in negations:
+            intensifier_multiplier *= -1
+            continue
+
+        word_sentiment = sentiment_dict.get(word_lower, 0)
+        sentiment_score += intensifier_multiplier * word_sentiment
+        intensifier_multiplier = 1.0  # Reset the multiplier after applying it
+
     return sentiment_score
 
-# Example 
-text = "alive academy angelic"
-tokens = tokenize_and_tag(text)
-sentiment_score = calculate_sentiment(tokens)
-print("Tokens:", tokens)
-print("Sentiment Score:", sentiment_score)
+# Example usage
+text1 = "abandoned really agony."
+text2 = "abandoned agony."
 
+tokens1 = tokenize_and_tag(text1)
+tokens2 = tokenize_and_tag(text2)
+
+sentiment_score1 = calculate_sentiment(tokens1)
+sentiment_score2 = calculate_sentiment(tokens2)
+
+print("Tokens 1:", tokens1)
+print("Sentiment Score 1:", sentiment_score1)
+
+print("Tokens 2:", tokens2)
+print("Sentiment Score 2:", sentiment_score2)
 
 
