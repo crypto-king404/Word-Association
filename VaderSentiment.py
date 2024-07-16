@@ -42,23 +42,18 @@ def calculate_sentiment(text):
     return sentiment_scores
 
 # Example usage
-text = "The brave wolf is ugly."
-tokens = tokenize_and_tag(text)
-sentiment_scores = calculate_sentiment(text)
+sentences = [
+    "The brave wolf is handsome.",
+    "The brave wolf is extremely handsome.",
+    "The brave wolf is not handsome.",
+    "The cake is very delicious.",
+    "The weather is not good.",
+    "She is quite amazing.",
+    "He never goes there."
+]
 
-print("Tokens:", tokens)
-print("Sentiment Scores:", sentiment_scores)
-
-# Additional sentences to analyze
-sentence1 = "The brave wolf is handsome."
-sentence2 = "The brave wolf is extremely handsome."
-sentence3 = "The brave wolf is not handsome."
-
-# Calculate sentiment scores for additional sentences
-score1 = calculate_sentiment(sentence1)
-score2 = calculate_sentiment(sentence2)
-score3 = calculate_sentiment(sentence3)
-
-print(f"Sentiment scores for '{sentence1}': {score1}")
-print(f"Sentiment scores for '{sentence2}': {score2}")
-print(f"Sentiment scores for '{sentence3}': {score3}")
+for sentence in sentences:
+    tokens = tokenize_and_tag(sentence)
+    sentiment_scores = calculate_sentiment(sentence)
+    print(f"Tokens for '{sentence}':", tokens)
+    print(f"Sentiment scores for '{sentence}':", sentiment_scores)
