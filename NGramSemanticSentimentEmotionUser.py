@@ -5,6 +5,7 @@ Created on Sun Aug 11 15:41:27 2024
 
 @author: rohan1809
 """
+        
 import random
 import pandas as pd
 from nltk.corpus import wordnet as wn
@@ -34,10 +35,7 @@ class RefinedNGramPlayer:
         self.bigrams = self.generate_bigrams()
         print(f"Generated {len(self.bigrams)} bigrams from adjectives and nouns.")
         
-        # Load pre-trained GloVe vectors
         self.glove_vectors = self.load_glove_vectors()
-
-        # Initialize VADER sentiment analyzer
         self.sid = SentimentIntensityAnalyzer()
     
     def load_words_from_csv(self, file_path, column_name):
@@ -52,7 +50,6 @@ class RefinedNGramPlayer:
         return bigram_dict
 
     def load_glove_vectors(self, glove_file='glove.6B.50d.txt'):
-        # Load pre-trained GloVe vectors (50-dimensional embeddings)
         glove_path = os.path.expanduser(f'~/Desktop/EAAI25-main/{glove_file}')
         glove_vectors = {}
         with open(glove_path, 'r') as file:
@@ -75,7 +72,7 @@ class RefinedNGramPlayer:
         return 0
 
     def get_word_sentiment(self, word):
-        # Use VADER to get sentiment of the word
+        # VADER to get sentiment of the word
         sentiment_scores = self.sid.polarity_scores(word)
         return sentiment_scores['compound']  # Return compound score as sentiment
 
@@ -103,27 +100,48 @@ class RefinedNGramPlayer:
 
     def choose_card(self, target_adjective, hand):
         print(f"Choosing card for target: {target_adjective}")
-        
+    
         target_bigrams = self.bigrams.get(target_adjective, [])
-        
+
         best_card = None
         best_score = -float('inf')
 
+        # Determine if the target adjective is positive or negative
+        target_sentiment = self.get_word_sentiment(target_adjective)
+    
         for card in hand:
             score = 0
-            
+        
             # Semantic similarity
             similarity_score = self.semantic_similarity(target_adjective, card)
             score += 2 * similarity_score  # Increase weight of similarity score
-            
+        
             # Word sentiment
             word_sentiment = self.get_word_sentiment(card)
-            if self.user_sentiment > 0 and word_sentiment > 0:
-                score += word_sentiment * 1.5  # Positive user with positive word
-            elif self.user_sentiment < 0 and word_sentiment < 0:
-                score += abs(word_sentiment) * 1.5  # Negative user with negative word
-            else:
-                score -= abs(word_sentiment) * 1.5  # Mismatch between user sentiment and word sentiment
+
+            # Adjust score based on user's sentiment and the sentiment of the word relative to the target
+            if self.user_sentiment > 0:  # Positive user sentiment
+                if target_sentiment > 0:  # Positive target
+                    if word_sentiment > 0:
+                        score += abs(word_sentiment) * 3  # Strongly favor positive words
+                    else:
+                        score -= abs(word_sentiment) * 2  # Penalize negative words
+                else:  # Negative target
+                    if word_sentiment < 0:
+                        score += abs(word_sentiment) * 3  # Strongly favor negative words
+                    else:
+                        score -= abs(word_sentiment) * 2  # Penalize positive words
+            else:  # Negative user sentiment
+                if target_sentiment > 0:  # Positive target
+                    if word_sentiment < 0:
+                        score += abs(word_sentiment) * 3  # Strongly favor negative words
+                    else:
+                        score -= abs(word_sentiment) * 2  # Penalize positive words
+                else:  # Negative target
+                    if word_sentiment > 0:
+                        score += abs(word_sentiment) * 3  # Strongly favor positive words
+                    else:
+                        score -= abs(word_sentiment) * 2  # Penalize negative words
 
             # Validate bigram
             if card in target_bigrams and self.validate_bigram(f"{target_adjective} {card}"):
@@ -132,15 +150,25 @@ class RefinedNGramPlayer:
             # Emotion influence
             if 'delight' in self.user_emotion or 'ecstasy' in self.user_emotion:
                 if word_sentiment > 0:
-                    score += 0.7  # Boost for positive emotions and positive words
+                    score += 1.5  # Strong boost for positive emotions and positive words
+                else:
+                    score -= 1  # Penalization for positive emotions and negative words
             elif 'enthusiasm' in self.user_emotion or 'serenity' in self.user_emotion:
                 if word_sentiment > 0:
                     score += 0.5  # Moderate boost for positive words
-            elif 'terror' in self.user_emotion or 'loathing' in self.user_emotion:
-                if word_sentiment < 0:
-                    score += 0.7  # Boost for negative emotions and negative words
                 else:
-                    score -= 0.5  # Penalization for mismatch with negative emotions
+                    score -= 0.5  # Slight penalization for positive emotions and negative words
+            elif 'terror' in self.user_emotion or 'loathing' in self.user_emotion:
+                if target_sentiment > 0:  # Positive target
+                    if word_sentiment < 0:
+                        score += 1.5  # Strong boost for negative emotions and negative words
+                    else:
+                        score -= 1  # Penalization for negative emotions and positive words
+                else:  # Negative target
+                    if word_sentiment > 0:
+                        score += 1.5  # Strong boost for negative emotions and positive words
+                    else:
+                        score -= 1  # Penalization for negative emotions and negative words
 
             print(f"Card: {card}, Similarity Score: {similarity_score}, Word Sentiment: {word_sentiment}, Total Score: {score}")
 
@@ -153,6 +181,7 @@ class RefinedNGramPlayer:
 
         print(f"Chosen card: {best_card} with score: {best_score}")
         return best_card
+ 
 
 # Simulate the game for each user with the same target adjective and hand
 def simulate_game_for_users_same_target_hand(users, user_sentiment_emotion_df, target_adjective, hand):
@@ -179,13 +208,13 @@ def simulate_game_for_users_same_target_hand(users, user_sentiment_emotion_df, t
 users = ['taylorswift13', 'piersmorgan', 'SabrinaAnnLynn', 'elonmusk', 'Simone_Biles']
 user_sentiment_emotion_df = pd.read_excel('~/Desktop/EAAI25-main/UserSentimentEmotionData.xlsx')
 
-# Define a common target adjective and hand for all users
-target_adjective = 'beautiful'  # Example target adjective
-hand = ['girl', 'boulder', 'leaf', 'disaster', 'rock']  # Example nouns hand
+target_adjective = 'sad'  # Example target adjective
+hand = ['man', 'person', 'girl', 'disaster', 'devil']  # Example nouns hand
 
 results_df = simulate_game_for_users_same_target_hand(users, user_sentiment_emotion_df, target_adjective, hand)
 
 # Display results
 print(results_df)
+
 
 
